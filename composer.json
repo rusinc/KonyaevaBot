@@ -1,0 +1,14 @@
+{
+  "name": "rus_inc/konyaeva_bot",
+  "description": "Бот на основе VK API для напоминания расписания учащимся Коняевского колледжа",
+  "minimum-stability": "stable",
+  "license": "proprietary",
+  "authors": [
+    {
+      "name": "rusInc"
+    }
+  ],
+  "require": {
+    "imagine/imagine": "~0.5.0"
+  }
+}
