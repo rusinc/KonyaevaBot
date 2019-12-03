@@ -1,5 +1,6 @@
 <?php
 
+use Imagine\Image\Box;
 use Imagine\Image\Point;
 
 require_once __DIR__."/autoload.php";
@@ -191,5 +192,5 @@ foreach ($classes as $class){
 }
 
 //Генерируем картинку для отправки в беседу
-$gridPainter = new GridPainter("../resources/поиск.png","../out/schedule.png","test",new Point(0,0),new Point(0,0),new Point(0,0));
+$gridPainter = new GridPainter("../resources/поиск.png","../out/schedule.png","test длинного заголовка\nПривет медвед!",new Point(384,49),new Box(732-384,200-49),new Point(0,0),new Box(100,100));
 $gridPainter->drawSchedule($classes);
