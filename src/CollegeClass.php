@@ -13,7 +13,7 @@ class CollegeClass {
      */
     private $name;
     /**
-     * @var array
+     * @var array|null
      */
     private $teachersAndRooms;
     /**
@@ -30,10 +30,10 @@ class CollegeClass {
      * @param int $number
      * @param int $type
      * @param string $name
-     * @param array $teachersAndRooms
+     * @param array|null $teachersAndRooms
      * $teachersAndRooms имеет вид [Препод]=>"аудитория"
      */
-    public function __construct(int $number,int $type,string $name = null, array $teachersAndRooms = null) {
+    public function __construct(int $number,int $type,string $name = null, ?array $teachersAndRooms = null) {
         $this->name = $name;
         $this->teachersAndRooms = $teachersAndRooms;
         $this->number = $number;
@@ -48,9 +48,9 @@ class CollegeClass {
     }
 
     /**
-     * @return array
+     * @return array|null
      */
-    public function getTeachersAndRooms(): array {
+    public function getTeachersAndRooms(): ?array {
         return $this->teachersAndRooms;
     }
 

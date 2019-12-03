@@ -192,5 +192,5 @@ foreach ($classes as $class){
 }
 
 //Генерируем картинку для отправки в беседу
-$gridPainter = new GridPainter("../resources/поиск.png","../out/schedule.png","test длинного заголовка\nПривет медвед!",new Point(384,49),new Box(732-384,200-49),new Point(0,0),new Box(100,100));
+$gridPainter = new GridPainter("../resources/поиск.png","../out/schedule.png","test длинного заголовка\nПривет медвед!",new Point(384,49),new Box(732-384,200-49),new Point(354,330),new Box(967-354,580-330));
 $gridPainter->drawSchedule($classes);
