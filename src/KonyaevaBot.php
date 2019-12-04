@@ -13,12 +13,14 @@ $group = "3-ПР1";
 /** @var CollegeClass[] $changes */
 $changes = [];
 
-//Скачиваем файл с сайта TODO улучшить. Я чую, что у них там еще и название файла не совсем статично
-//file_put_contents("../out/ismras.doc",file_get_contents("http://www.tgiek.ru/files/timetables/ismras_0.doc"));
+preg_match("/(<a.+href\s?=\s?\"(.*\.doc.*)\".+>.+<\/a>)/mixuU",file_get_contents("http://www.tgiek.ru/timetable/ism"),$addresses);
+$address = $addresses[2];
+
+file_put_contents("../out/ismras.doc",file_get_contents($address));
 
 
 //Закомментировать, если в среде нет antiword (в докере он есть)
-$content = shell_exec('antiword -w 0 -m UTF-8.txt '."../resources/ismras.doc"); //../resources/ismras.doc - это тестовый ресурс
+$content = shell_exec('antiword -w 0 -m UTF-8.txt '."../out/ismras.doc");
 
 $content = trim(str_replace("\n"," ",$content));
 
@@ -27,29 +29,29 @@ $contentA = explode(" ",$content);
 
 $day = $contentA[0];
 $month = $contentA[1];
-$weekDay = mb_substr($contentA[2],1,-1);
+$weekDayName = mb_substr($contentA[2],1,-1);
 
-switch (mb_strtolower($weekDay)){
+switch (mb_strtolower($weekDayName)){
     case "понедельник":
-        $weekDay = CollegeSchedule::MONDAY;
+        $weekDayNumber = CollegeSchedule::MONDAY;
         break;
     case "вторник":
-        $weekDay = CollegeSchedule::TUESDAY;
+        $weekDayNumber = CollegeSchedule::TUESDAY;
         break;
     case "среда":
-        $weekDay = CollegeSchedule::WEDNESDAY;
+        $weekDayNumber = CollegeSchedule::WEDNESDAY;
         break;
     case "четверг":
-        $weekDay = CollegeSchedule::THURSDAY;
+        $weekDayNumber = CollegeSchedule::THURSDAY;
         break;
     case "пятница":
-        $weekDay = CollegeSchedule::FRIDAY;
+        $weekDayNumber = CollegeSchedule::FRIDAY;
         break;
     case "суббота":
-        $weekDay = CollegeSchedule::SATURDAY;
+        $weekDayNumber = CollegeSchedule::SATURDAY;
         break;
     case "воскресенье":
-        $weekDay = CollegeSchedule::SUNDAY;
+        $weekDayNumber = CollegeSchedule::SUNDAY;
         break;
 }
 
@@ -77,69 +79,68 @@ for($pos; $pos<strlen($content); $pos++){
 //Находим строку в таблице с нашей группой
 $pos = strpos($content,$group,$pos+1);
 
-if(!$pos){
-    //TODO адаптировать под бота
-    exit("Изменения для группы $group не найдены!");
-}
+if($pos!==false){
 
-for($i = 1;$i<=$cols;$i++){
-    //Начало ячейки
-    $begin = strpos($content,"|",$pos);
-    //Конец ячейки
-    $end = strpos($content,"|",$begin+1);
+    for($i = 1;$i<=$cols;$i++){
+        //Начало ячейки
+        $begin = strpos($content,"|",$pos);
+        //Конец ячейки
+        $end = strpos($content,"|",$begin+1);
 
 
-    //Контент ячейки
-    $class = trim(substr($content,$begin+1,$end-$begin-1));
+        //Контент ячейки
+        $class = trim(substr($content,$begin+1,$end-$begin-1));
 
-    $pairs = []; //Будущие комбинации преподов и аудиторий
-    if($class=="ОТМЕНА"){
-        $mode = CollegeClass::TYPE_CANCELLED;
-    }elseif (empty($class)){
-        $mode = CollegeClass::TYPE_NOT_CHANGED;
-    }else{
-        $mode = CollegeClass::TYPE_CHANGED;
+        $pairs = []; //Будущие комбинации преподов и аудиторий
+        if($class=="ОТМЕНА"){
+            $mode = CollegeClass::TYPE_CANCELLED;
+        }elseif (empty($class)){
+            $mode = CollegeClass::TYPE_NOT_CHANGED;
+        }else{
+            $mode = CollegeClass::TYPE_CHANGED;
 
-        //Ищем всех преподов
-        preg_match_all("/([А-Я]\w+\s[А-Я]\.[А-Я]\.?)/u",$class,$teachersM);
+            //Ищем всех преподов
+            preg_match_all("/([А-Я]\w+\s[А-Я]\.[А-Я]\.?)/u",$class,$teachersM);
 
-        $teachers = $teachersM[0]; //Преподы
+            $teachers = $teachersM[0]; //Преподы
 
-        if(!empty($teachers)){
-            $teachersStart = strpos($class,$teachers[0]);
-            $lastTeacher = $teachers[count($teachers)-1];
-            $teachersEnd = strpos($class,$lastTeacher)+strlen($lastTeacher);
+            if(!empty($teachers)){
+                $teachersStart = strpos($class,$teachers[0]);
+                $lastTeacher = $teachers[count($teachers)-1];
+                $teachersEnd = strpos($class,$lastTeacher)+strlen($lastTeacher);
 
-            //Вся строка с аудиториями
-            $roomsStr = trim(substr($class,strpos($class,$lastTeacher)+strlen($lastTeacher)));
-            $rooms = explode(",",$roomsStr); //Аудитории
-            $class = str_replace($roomsStr,"",$class); //Вычищаем аудитории из общей строки
-            //Заменяем полные строки аудиторий их короткими кодами (без слова "ауд")
-            foreach ($rooms as &$roomCode){
-                $roomCode = explode(" ",trim($roomCode))[0];
+                //Вся строка с аудиториями
+                $roomsStr = trim(substr($class,strpos($class,$lastTeacher)+strlen($lastTeacher)));
+                $rooms = explode(",",$roomsStr); //Аудитории
+                $class = str_replace($roomsStr,"",$class); //Вычищаем аудитории из общей строки
+                //Заменяем полные строки аудиторий их короткими кодами (без слова "ауд")
+                foreach ($rooms as &$roomCode){
+                    $roomCode = explode(" ",trim($roomCode))[0];
+                }
+
+                //Вся строка с преподами
+                $teachersStr = trim(substr($class,$teachersStart,$teachersEnd-$teachersStart));
+                $class = str_replace($teachersStr,"",$class); //Убираем преподов из общей строки
+                $class = trim($class);
+                //Создаем ассоциации преподов с аудиториями
+                $pairs = array_combine($teachers,$rooms);
             }
-
-            //Вся строка с преподами
-            $teachersStr = trim(substr($class,$teachersStart,$teachersEnd-$teachersStart));
-            $class = str_replace($teachersStr,"",$class); //Убираем преподов из общей строки
-            $class = trim($class);
-            //Создаем ассоциации преподов с аудиториями
-            $pairs = array_combine($teachers,$rooms);
         }
+
+        switch ($mode){
+            case CollegeClass::TYPE_CANCELLED:
+            case CollegeClass::TYPE_NOT_CHANGED:
+                $changes[] = new CollegeClass($i,$mode);
+                break;
+            case CollegeClass::TYPE_CHANGED:
+                $changes[] = new CollegeClass($i,$mode,$class,$pairs);
+        }
+        $pos = $end;
     }
 
-    switch ($mode){
-        case CollegeClass::TYPE_CANCELLED:
-        case CollegeClass::TYPE_NOT_CHANGED:
-            $changes[] = new CollegeClass($i,$mode);
-            break;
-        case CollegeClass::TYPE_CHANGED:
-            $changes[] = new CollegeClass($i,$mode,$class,$pairs);
-    }
-    $pos = $end;
 }
 
-$classes = CollegeSchedule::getDay($weekDay);
+$classes = CollegeSchedule::getDay($weekDayNumber);
 
 //Заменяем штатные пары, если есть замены или отмены
 array_walk(
@@ -192,5 +193,5 @@ foreach ($classes as $class){
 }
 
 //Генерируем картинку для отправки в беседу
-$gridPainter = new GridPainter("../resources/поиск.png","../out/schedule.png","test длинного заголовка\nПривет медвед!",new Point(384,49),new Box(732-384,200-49),new Point(354,330),new Box(967-354,580-330));
+$gridPainter = new GridPainter("../resources/поиск.png","../out/schedule.png",$day." ".$month."\n".$weekDayName,new Point(384,49),new Box(732-384,200-49),new Point(354,330),new Box(967-354,580-330));
 $gridPainter->drawSchedule($classes);
